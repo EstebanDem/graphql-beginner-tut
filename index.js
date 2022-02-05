@@ -67,6 +67,11 @@ const typeDefs = gql`
             street: String!
             city: String!
         ): Person
+
+        editNumber(
+            name: String!
+            phone: String!
+        ): Person
     }
 `
 /* Query es la query que vamos a hacer al servidor y queremos que nos devuelva, por ejemplo,
@@ -99,6 +104,16 @@ const resolvers = {
             const person = {...args, id: uuid()}
             persons.push(person) // update database with new person
             return person
+        },
+        editNumber: (root, args) => {
+            const personIndex = persons.findIndex(p => p.name === args.name)
+            if(personIndex === -1) return null
+            
+            const person = persons[personIndex]
+
+            const updatedPerson = {...person, phone:args.phone}
+            persons[personIndex] = updatedPerson;
+            return updatedPerson;
         }
     },
     Person: {
