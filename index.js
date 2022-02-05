@@ -1,5 +1,6 @@
 import {gql} from 'apollo-server';
-import { ApolloServer } from 'apollo-server';
+import { ApolloServer, UserInputError } from 'apollo-server';
+import {v1 as uuid} from 'uuid';
 
 
 const persons = [
@@ -31,6 +32,12 @@ const persons = [
 // La exclamación ! es cuando es un campo requerido
 
 const typeDefs = gql`
+
+    type Address {
+        street: String!
+        city: String!
+    }
+
     type Person {
         name: String!
         phone: String
@@ -38,6 +45,7 @@ const typeDefs = gql`
         city: String!
         age: Int
         canDrink: Boolean
+        address: Address!
         id: ID!
     }
 
@@ -45,6 +53,15 @@ const typeDefs = gql`
         personCount: Int!
         allPersons: [Person]!
         findPerson(name: String!): Person
+    }
+
+    type Mutation {
+        addPerson(
+            name: String!
+            phone: String
+            street: String!
+            city: String!
+        ): Person
     }
 `
 /* Query es la query que vamos a hacer al servidor y queremos que nos devuelva, por ejemplo,
@@ -60,8 +77,25 @@ const resolvers = {
             return persons.find(person => person.name === name)
         }
     },
+    Mutation: {
+        addPerson: (root,args) => {
+            if (persons.find(p => p.name === args.name)) {
+                throw new UserInputError('Name must be unique', {
+                    invalidArgs: args.name
+                })
+            }
+            const person = {...args, id: uuid()}
+            persons.push(person) // update database with new person
+            return person
+        }
+    },
     Person: {
-        canDrink: (root) => root.age > 18
+        address: (root) => {
+            return {
+                street: root.street,
+                city: root.city
+            }
+        }
     }
 }
 
@@ -73,3 +107,4 @@ const server = new ApolloServer({
 server.listen().then( ({url}) => {
     console.log(`Server ready at ${url}`)
 } )
+
